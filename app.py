@@ -20,13 +20,12 @@ def load_all():
     if 'gas_data' not in st.session_state:
         if os.path.exists(DATA_FILE):
             df = pd.read_csv(DATA_FILE)
-            # Ensure columns are numeric
-            for col in ["Odometer", "Liters", "Price_per_L", "Total_Cost"]:
+            for col in ["Odometer", "Liters", "Price", "Total"]:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors='coerce')
             st.session_state.gas_data = df
         else:
-            st.session_state.gas_data = pd.DataFrame(columns=["Vehicle", "Date", "Grade", "Odometer", "Liters", "Price_per_L", "Total_Cost"])
+            st.session_state.gas_data = pd.DataFrame(columns=["Vehicle", "Date", "Grade", "Odometer", "Liters", "Price", "Total"])
 
 def save_all():
     st.session_state.gas_data.to_csv(DATA_FILE, index=False)
@@ -67,27 +66,33 @@ if st.session_state.vehicles and not edit_mode:
         d = st.date_input("Date", date.today())
         odo = st.number_input("Odometer (km)", min_value=0.0, step=1.0)
         lits = st.number_input("Liters (L)", min_value=0.0, step=0.01)
-        prc = st.number_input("Price/L ($)", min_value=0.0, format="%.3f", step=0.001)
+        prc = st.number_input("Price per Liter ($)", min_value=0.0, format="%.3f", step=0.001)
+        
         if st.form_submit_button("Save Entry"):
-            cost = round(lits * prc, 2)
-            new_row = pd.DataFrame([{"Vehicle": sel_v, "Date": str(d), "Grade": grade, "Odometer": odo, "Liters": lits, "Price_per_L": prc, "Total_Cost": cost}])
-            st.session_state.gas_data = pd.concat([st.session_state.gas_data, new_row], ignore_index=True)
-            save_all()
-            st.rerun()
+            if prc <= 0 or lits <= 0:
+                st.error("Price and Liters must be more than 0!")
+            else:
+                cost = round(lits * prc, 2)
+                new_row = pd.DataFrame([{
+                    "Vehicle": sel_v, "Date": str(d), "Grade": grade, 
+                    "Odometer": odo, "Liters": lits, "Price": prc, "Total": cost
+                }])
+                st.session_state.gas_data = pd.concat([st.session_state.gas_data, new_row], ignore_index=True)
+                save_all()
+                st.rerun()
 
 # --- MAIN VIEW ---
 if not st.session_state.gas_data.empty:
     view_v = st.selectbox("View Stats For:", ["All"] + st.session_state.vehicles)
     df_view = st.session_state.gas_data if view_v == "All" else st.session_state.gas_data[st.session_state.gas_data["Vehicle"] == view_v]
 
-    # Calculate Total
-    total = pd.to_numeric(df_view["Total_Cost"], errors='coerce').sum()
+    total = pd.to_numeric(df_view["Total"], errors='coerce').sum()
     st.metric("Total Spent", f"${total:.2f}")
 
     if edit_mode:
         edited = st.data_editor(df_view, num_rows="dynamic", use_container_width=True)
         if st.button("Save Changes"):
-            edited["Total_Cost"] = round(edited["Liters"] * edited["Price_per_L"], 2)
+            edited["Total"] = round(edited["Liters"] * edited["Price"], 2)
             if view_v == "All":
                 st.session_state.gas_data = edited
             else:

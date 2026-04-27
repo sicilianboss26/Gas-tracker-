@@ -62,4 +62,39 @@ if st.session_state.vehicles:
         new_row = {
             "Vehicle": selected_v, "Date": fill_date, "Odometer": odometer,
             "Liters": liters, "Price_per_L": price, 
-            "Total_Cost": round(lit
+            "Total_Cost": round(liters * price, 2), "Efficiency": eff
+        }
+        st.session_state.gas_data = pd.concat([st.session_state.gas_data, pd.DataFrame([new_row])], ignore_index=True)
+        st.success(f"Logged for {selected_v}!")
+else:
+    st.sidebar.info("Add a vehicle above to start logging gas.")
+
+# --- DATA BACKUP SECTION ---
+st.sidebar.markdown("---")
+st.sidebar.header("💾 Backup Data")
+csv = st.session_state.gas_data.to_csv(index=False).encode('utf-8')
+st.sidebar.download_button(
+    label="Download Logs (CSV)",
+    data=csv,
+    file_name='gas_tracker_backup.csv',
+    mime='text/csv',
+)
+
+# --- MAIN DASHBOARD ---
+if not st.session_state.gas_data.empty:
+    view_v = st.selectbox("View Stats For:", ["All"] + st.session_state.vehicles)
+    
+    display_df = st.session_state.gas_data
+    if view_v != "All":
+        display_df = st.session_state.gas_data[st.session_state.gas_data["Vehicle"] == view_v]
+
+    col1, col2 = st.columns(2)
+    col1.metric("Total Spent", f"${display_df['Total_Cost'].sum():.2f}")
+    
+    valid_eff = display_df[display_df["Efficiency"] > 0]["Efficiency"]
+    avg_eff = valid_eff.mean() if not valid_eff.empty else 0.0
+    col2.metric("Avg Efficiency", f"{avg_eff:.2f} L/100km")
+    
+    st.dataframe(display_df, use_container_width=True)
+else:
+    st.info("Your garage is empty or no gas has been logged yet.")

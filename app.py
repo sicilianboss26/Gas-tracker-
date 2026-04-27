@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
+import os
 
 st.set_page_config(page_title="Gas Tracker", layout="wide")
 
@@ -18,12 +19,30 @@ if 'gas_data' not in st.session_state:
 # --- SIDEBAR: GARAGE MANAGEMENT ---
 st.sidebar.header("🛠️ Manage Garage")
 
-# Add a vehicle with the specific placeholder you wanted
-new_vehicle = st.sidebar.text_input("Add New Vehicle", placeholder="Year Make Model")
+# Logic to handle auto-erasing the input box
+if "v_input" not in st.session_state:
+    st.session_state.v_input = ""
+
+def clear_text():
+    st.session_state.v_input = st.session_state.widget_input
+    st.session_state.widget_input = ""
+
+# Add a vehicle with the "Year Make Model" placeholder
+new_vehicle = st.sidebar.text_input(
+    "Add New Vehicle", 
+    placeholder="Year Make Model", 
+    key="widget_input", 
+    on_change=None
+)
+
 if st.sidebar.button("Add to Garage"):
-    if new_vehicle and new_vehicle not in st.session_state.vehicles:
-        st.session_state.vehicles.append(new_vehicle)
-        st.rerun()
+    if st.session_state.widget_input:
+        vehicle_name = st.session_state.widget_input
+        if vehicle_name not in st.session_state.vehicles:
+            st.session_state.vehicles.append(vehicle_name)
+            # This clears the text box by resetting the widget state
+            st.session_state.widget_input = ""
+            st.rerun()
 
 # Remove a vehicle logic
 if st.session_state.vehicles:
@@ -66,6 +85,18 @@ if st.session_state.vehicles:
         st.success(f"Logged for {selected_v}!")
 else:
     st.sidebar.info("Add a vehicle above to start logging gas.")
+
+# --- DATA BACKUP SECTION ---
+st.sidebar.markdown("---")
+st.sidebar.header("💾 Backup Data")
+if st.sidebar.button("Download Data as CSV"):
+    csv = st.session_state.gas_data.to_csv(index=False).encode('utf-8')
+    st.sidebar.download_button(
+        label="Confirm Download",
+        data=csv,
+        file_name='gas_tracker_backup.csv',
+        mime='text/csv',
+    )
 
 # --- MAIN DASHBOARD ---
 if not st.session_state.gas_data.empty:

@@ -24,17 +24,14 @@ def load_all():
         if os.path.exists(DATA_FILE):
             try:
                 df = pd.read_csv(DATA_FILE)
-                # Migration Logic: Rename old columns if they exist
                 rename_map = {"Total_Cost": "Total", "Price_per_L": "Price"}
                 df = df.rename(columns=rename_map)
                 
-                # Ensure all required columns exist
                 required_cols = ["Vehicle", "Date", "Grade", "Odometer", "Liters", "Price", "Total"]
                 for col in required_cols:
                     if col not in df.columns:
                         df[col] = 0 if col in ["Odometer", "Liters", "Price", "Total"] else ""
 
-                # Ensure columns are numeric
                 for col in ["Odometer", "Liters", "Price", "Total"]:
                     df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
                 st.session_state.gas_data = df
@@ -70,16 +67,4 @@ if st.session_state.vehicles:
         save_all()
         st.rerun()
 
-st.sidebar.markdown("---")
-edit_mode = st.sidebar.toggle("📝 Enable Edit Mode")
-
-if st.session_state.vehicles and not edit_mode:
-    st.sidebar.header("⛽ Log Fill-up")
-    sel_v = st.sidebar.selectbox("Select Vehicle", st.session_state.vehicles)
-    grade = st.sidebar.selectbox("Grade", ["Regular (87)", "Plus (89)", "Premium (91)", "Ultra (93/94)", "Diesel"])
-
-    with st.sidebar.form("log_form", clear_on_submit=True):
-        d = st.date_input("Date", date.today())
-        odo = st.number_input("Odometer (km)", min_value=0.0, step=1.0)
-        lits = st.number_input("Liters (L)", min_value=0.0, step=0.01)
-        prc = st.number
+st

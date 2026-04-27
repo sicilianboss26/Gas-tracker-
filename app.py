@@ -12,12 +12,18 @@ VEHICLE_FILE = "vehicles.csv"
 # --- HELPER FUNCTIONS ---
 def load_data():
     if os.path.exists(DATA_FILE):
-        return pd.read_csv(DATA_FILE)
-    return pd.DataFrame(columns=["Vehicle", "Date", "Odometer", "Liters", "Price_per_L", "Total_Cost"])
+        try:
+            return pd.read_csv(DATA_FILE)
+        except:
+            pass
+    return pd.DataFrame(columns=["Vehicle", "Date", "Grade", "Odometer", "Liters", "Price_per_L", "Total_Cost"])
 
 def load_vehicles():
     if os.path.exists(VEHICLE_FILE):
-        return pd.read_csv(VEHICLE_FILE)["Vehicle"].tolist()
+        try:
+            return pd.read_csv(VEHICLE_FILE)["Vehicle"].tolist()
+        except:
+            pass
     return []
 
 def save_all():
@@ -31,7 +37,8 @@ if 'vehicles' not in st.session_state:
 if 'gas_data' not in st.session_state:
     st.session_state.gas_data = load_data()
 
-st.title("🚗 Gas Tracker & Garage Hub")
+# Updated Title
+st.title("⛽ Gas Tracker")
 
 # --- SIDEBAR: GARAGE MANAGEMENT ---
 st.sidebar.header("🛠️ Manage Garage")
@@ -43,7 +50,7 @@ with st.sidebar.form("vehicle_form", clear_on_submit=True):
     if add_btn:
         if vehicle_name and vehicle_name not in st.session_state.vehicles:
             st.session_state.vehicles.append(vehicle_name)
-            save_all() # Save instantly
+            save_all()
             st.rerun()
 
 if st.session_state.vehicles:
@@ -51,7 +58,7 @@ if st.session_state.vehicles:
     if st.sidebar.button("Remove Selected"):
         st.session_state.vehicles.remove(vehicle_to_remove)
         st.session_state.gas_data = st.session_state.gas_data[st.session_state.gas_data["Vehicle"] != vehicle_to_remove]
-        save_all() # Save instantly
+        save_all()
         st.rerun()
 
 st.sidebar.markdown("---")
@@ -65,6 +72,9 @@ st.sidebar.markdown("---")
 if st.session_state.vehicles and not edit_mode:
     st.sidebar.header("⛽ Log Fill-up")
     selected_v = st.sidebar.selectbox("Select Vehicle", st.session_state.vehicles)
+    
+    # Added Gas Grades
+    gas_grade = st.sidebar.selectbox("Gas Grade", ["Regular (87)", "Plus (89)", "Premium (91)", "Ultra (93/94)", "Diesel"])
 
     with st.sidebar.form("input_form", clear_on_submit=True):
         fill_date = st.date_input("Date", date.today())
@@ -75,13 +85,17 @@ if st.session_state.vehicles and not edit_mode:
 
         if submit:
             new_row = {
-                "Vehicle": selected_v, "Date": str(fill_date), "Odometer": odometer,
-                "Liters": liters, "Price_per_L": price, 
+                "Vehicle": selected_v, 
+                "Date": str(fill_date), 
+                "Grade": gas_grade,
+                "Odometer": odometer,
+                "Liters": liters, 
+                "Price_per_L": price, 
                 "Total_Cost": round(liters * price, 2)
             }
             st.session_state.gas_data = pd.concat([st.session_state.gas_data, pd.DataFrame([new_row])], ignore_index=True)
-            save_all() # Save instantly
-            st.success(f"Logged for {selected_v}!")
+            save_all()
+            st.success(f"Logged {gas_grade} for {selected_v}!")
 
 elif edit_mode:
     st.sidebar.info("Edit Mode active. Use the table to manage entries.")

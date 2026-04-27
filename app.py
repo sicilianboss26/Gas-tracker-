@@ -7,7 +7,6 @@ st.set_page_config(page_title="Gas Tracker", layout="wide")
 st.title("🚗 Gas Tracker & Garage Hub")
 
 # --- INITIALIZE DATA ---
-# Starting with an empty list for a fresh start
 if 'vehicles' not in st.session_state:
     st.session_state.vehicles = []
 
@@ -19,26 +18,24 @@ if 'gas_data' not in st.session_state:
 # --- SIDEBAR: GARAGE MANAGEMENT ---
 st.sidebar.header("🛠️ Manage Garage")
 
-# Add a vehicle
-new_vehicle = st.sidebar.text_input("Add New Vehicle (e.g. 2012 GMC Terrain)")
+# Add a vehicle with the specific placeholder you wanted
+new_vehicle = st.sidebar.text_input("Add New Vehicle", placeholder="Year Make Model")
 if st.sidebar.button("Add to Garage"):
     if new_vehicle and new_vehicle not in st.session_state.vehicles:
         st.session_state.vehicles.append(new_vehicle)
         st.rerun()
 
-# Remove a vehicle (only shows if there are vehicles to remove)
+# Remove a vehicle logic
 if st.session_state.vehicles:
     vehicle_to_remove = st.sidebar.selectbox("Remove a Vehicle", st.session_state.vehicles)
     if st.sidebar.button("Remove Selected"):
         st.session_state.vehicles.remove(vehicle_to_remove)
-        # Optional: Remove gas data associated with that vehicle too
         st.session_state.gas_data = st.session_state.gas_data[st.session_state.gas_data["Vehicle"] != vehicle_to_remove]
         st.rerun()
 
 st.sidebar.markdown("---")
 
 # --- SIDEBAR: LOG GAS ---
-# Only show logging form if a vehicle exists
 if st.session_state.vehicles:
     st.sidebar.header("⛽ Log Fill-up")
     selected_v = st.sidebar.selectbox("Select Vehicle", st.session_state.vehicles)
@@ -51,6 +48,7 @@ if st.session_state.vehicles:
         submit = st.form_submit_button("Save Entry")
 
     if submit:
+        # Calculate efficiency based on last entry for THIS specific vehicle
         v_data = st.session_state.gas_data[st.session_state.gas_data["Vehicle"] == selected_v]
         eff = 0.0
         if not v_data.empty:
@@ -77,13 +75,12 @@ if not st.session_state.gas_data.empty:
     if view_v != "All":
         display_df = st.session_state.gas_data[st.session_state.gas_data["Vehicle"] == view_v]
 
-    c1, c2 = st.columns(2)
-    c1.metric("Total Spent", f"${display_df['Total_Cost'].sum():.2f}")
+    col1, col2 = st.columns(2)
+    col1.metric("Total Spent", f"${display_df['Total_Cost'].sum():.2f}")
     
-    # Calculate average efficiency, ignoring the '0.0' entries from first fill-ups
     valid_eff = display_df[display_df["Efficiency"] > 0]["Efficiency"]
     avg_eff = valid_eff.mean() if not valid_eff.empty else 0.0
-    c2.metric("Avg Efficiency", f"{avg_eff:.2f} L/100km")
+    col2.metric("Avg Efficiency", f"{avg_eff:.2f} L/100km")
     
     st.dataframe(display_df, use_container_width=True)
 else:

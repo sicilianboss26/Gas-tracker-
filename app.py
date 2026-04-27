@@ -47,3 +47,16 @@ if st.session_state.vehicles and not edit_mode:
     selected_v = st.sidebar.selectbox("Select Vehicle", st.session_state.vehicles)
 
     with st.sidebar.form("input_form", clear_on_submit=True):
+        fill_date = st.date_input("Date", date.today())
+        odometer = st.number_input("Odometer (km)", min_value=0)
+        liters = st.number_input("Liters (L)", min_value=0.0)
+        price = st.number_input("Price/L ($)", min_value=0.0, format="%.3f")
+        submit = st.form_submit_button("Save Entry")
+
+        if submit:
+            new_row = {
+                "Vehicle": selected_v, "Date": fill_date, "Odometer": odometer,
+                "Liters": liters, "Price_per_L": price, 
+                "Total_Cost": round(liters * price, 2)
+            }
+            st.session_state
